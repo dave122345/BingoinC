@@ -39,6 +39,28 @@ int is_assigned(int val)
         return 1;
     }
 }
+
+int count_numbers_in_row(bingo_player * player, int row)
+{
+    int count = 0;
+    for(int i = 0;i < 9;i++)
+    {
+        if(is_assigned(player->bingo_card[row][i]))
+        {
+            count++;
+        }
+    }
+    
+    return(count);
+}
+
+int count_numbers_in_column(bingo_player * player, int col)
+{
+    return(is_assigned(player->bingo_card[0][col]) +
+           is_assigned(player->bingo_card[1][col]) +
+           is_assigned(player->bingo_card[2][col]));
+}
+
 void create_player(int player_number, bingo_player* player)
 {
     int i, j, row;
@@ -46,24 +68,20 @@ void create_player(int player_number, bingo_player* player)
     {
         return;
     }
-    int number_card[3][7];
+    
     player->player_number = player_number;
     for (i = 0; i < 3; i++)
     {
         for (j = 0; j < 9; j++)
-            
         {
-            if (j < 7)
-            {
-                number_card[i][j] = UNASSIGNED;
-            }
             player->bingo_card[i][j] = UNASSIGNED;
-            
         }//EO for
     }//EO For
+    
     //number generation
-    int num1, num2, num3, Randomcol;
+    int num1, num2, num3, Randomcol, randomrow;
     int gen = 0;
+    
     //first column
     num1 = rand() % 8 + 1;
     num2 = num1;
@@ -75,50 +93,7 @@ void create_player(int player_number, bingo_player* player)
     sort2(&num1, &num2);
     player->bingo_card[0][0] = num1;
     player->bingo_card[2][0] = num2;
-    //ALL other columns
-    for (j = 0; j < 7; j++)
-    {
-        number_card[0][j] = 10 + j * 10 + rand() % 9;
-    }
-    while (gen != 5)
-    {
-        Randomcol = rand() % 7;
-        num1 = number_card[0][Randomcol];
-        //use is_assigned() function here - better readability.
-        if (!is_assigned(number_card[1][Randomcol]))
-        {
-            do
-                
-            {
-                num2 = Randomcol * 10 + 10 + rand() % 9;
-            } while (num2 == num1);
-            number_card[1][Randomcol] = num2;
-        }
-        //use is_assigned() function here - better readability.
-        else if (!is_assigned(number_card[2][Randomcol]))
-        {
-            num2 = number_card[1][Randomcol];
-            do
-            {
-                num3 = Randomcol * 10 + 10 + rand() % 9;
-            } while (num3 == num1 || num3 == num2);
-            number_card[2][Randomcol] = num3;
-        }
-        else {
-            continue;
-        }
-        //printf("TEST %d\n", Randomcol);
-        gen++;
-    }
-   /* printf("number card\n");
-    for (i = 0; i < 3; i++)
-    {
-        for (j = 0; j < 7; j++)
-        {
-            printf("%d\t", number_card[i][j]);
-        }
-        printf("\n");
-    }*/
+    
     //last column
     num1 = 80 + rand() % 9;
     num2 = num1;
@@ -126,56 +101,94 @@ void create_player(int player_number, bingo_player* player)
     {
         num2 = 80 + rand() % 9;
     }
+    
     //use sort2 - less code and better readability.
     sort2(&num1, &num2);
     player->bingo_card[0][8] = num1;
     player->bingo_card[2][8] = num2;
     
-    //checking for the amounts of elements present in a column
-    for (j = 0; j < 7; j++)
+    
+    //ALL other columns
+    
+    // Each column will have at least one number
+    for (int col = 1; col < 8; col++)
     {
-        int Numelements = 1;
-        if (is_assigned(number_card[1][j])) {
-            if (is_assigned(number_card[2][j])) {
-                
-                Numelements = 3;
-            }
-            else {
-                Numelements = 2;
-            }
-        }
-        if (Numelements == 1) {
+        // Pick random row
+        row = rand() % 3;
+        
+        // Max 5 numbers on each row
+        while(count_numbers_in_row(player, row) >= 5)
+        {
             row = rand() % 3;
-            player->bingo_card[row][j + 1] = number_card[0][j];
+            
         }
-        else if (Numelements == 2) {
-            row = rand() % 3;
-            //in this case row is the unpopulated element
-            // use sort2 function to sort numbers in the number_card array.
-            sort2(&number_card[0][j], &number_card[1][j]);
-            if (row == 0)
+        
+        player->bingo_card[row][col] = col * 10 + rand() % 9;
+    }
+    
+    // Assign remaining numbers
+    
+    // Stop once there are 15 assigned.
+    while(count_numbers_in_row(player, 0) +
+          count_numbers_in_row(player, 1) +
+          count_numbers_in_row(player, 2) < 15)
+    {
+        randomrow = rand() % 3;
+        
+        // Max 5 numbers on each row
+        while(count_numbers_in_row(player, randomrow) >= 5)
+        {
+            randomrow = rand() % 3;
+        }
+        
+        Randomcol = rand() % 7 + 1;
+        
+        while(count_numbers_in_column(player, Randomcol) >= 3 ||      // ... max 3 number in each column
+              is_assigned(player->bingo_card[randomrow][Randomcol]))   // ... in case this card slot already has a number assigned
+        {
+            Randomcol = rand() % 7 + 1;
+        }
+        
+        num1 = Randomcol * 10 + rand() % 9;
+        
+        // Make sure this number isn't already on the card.
+        while(num1 == player->bingo_card[0][Randomcol] ||
+              num1 == player->bingo_card[1][Randomcol] ||
+              num1 == player->bingo_card[2][Randomcol])
+        {
+            num1 = Randomcol * 10 + rand() % 9;
+        }
+        
+        player->bingo_card[randomrow][Randomcol] = num1;
+        
+    }
+    
+    // Sort the numbers in each column.
+    int count;
+    for (i = 1;i < 8; i++)
+    {
+        count = count_numbers_in_column(player, i);
+        
+        if(count == 2)
+        {
+            if(!is_assigned(player->bingo_card[0][i]))
             {
-                player->bingo_card[1][j + 1] = number_card[0][j];
-                player->bingo_card[2][j + 1] = number_card[1][j];
+                sort2(&player->bingo_card[1][i], &player->bingo_card[2][i]);
             }
-            else if (row == 1) {
-                player->bingo_card[0][j + 1] = number_card[0][j];
-                player->bingo_card[2][j + 1] = number_card[1][j];
+            else if(!is_assigned(player->bingo_card[1][i]))
+            {
+                sort2(&player->bingo_card[0][i], &player->bingo_card[2][i]);
             }
-            else if (row == 2) {
-                player->bingo_card[0][j + 1] = number_card[0][j];
-                player->bingo_card[1][j + 1] = number_card[1][j];
+            else
+            {
+                sort2(&player->bingo_card[0][i], &player->bingo_card[1][i]);
             }
         }
-        else {
-            //checking for 3
-            //use sort3 function to sort the values in the number_card array.
-            sort3(&number_card[0][j], &number_card[1][j], &number_card[2][j]);
-            player->bingo_card[0][j + 1] = number_card[0][j];
-            player->bingo_card[1][j + 1] = number_card[1][j];
-            player->bingo_card[2][j + 1] = number_card[2][j];
+        else if(count == 3)
+        {
+            sort3(&player->bingo_card[0][i], &player->bingo_card[1][i], &player->bingo_card[2][i]);
         }
-    }//EO for
+    }
 }
 //helper function to print out player details.
 void print_player(bingo_player* player)
@@ -192,7 +205,15 @@ void print_player(bingo_player* player)
     {
         for (j = 0; j < 9; j++)
         {
-            printf("%d\t", player->bingo_card[i][j]);
+            if(is_assigned(player->bingo_card[i][j]))
+            {
+                printf("%d\t", player->bingo_card[i][j]);
+            }
+            else
+            {
+                printf(" \t");
+            }
+            
         }//EO for
         printf("\n");
     }//EO For
@@ -205,8 +226,8 @@ int has_duplicate(int* drawn, int draw)
         if (drawn[d] == draw)
         {
             
-           // printf("I AM LOOKING FOR EQUAL NUMBERS:\n");
-              return 1;
+            // printf("I AM LOOKING FOR EQUAL NUMBERS:\n");
+            return 1;
         }
     }//EO equal serach
     return 0;
@@ -214,12 +235,12 @@ int has_duplicate(int* drawn, int draw)
 
 int has_winning(bingo_player*player, int* drawn)
 {
-   
+    
     //1 line condition check
     
     //2 line condition check
     //full house condition check
-
+    
     return 0;
 }//end of has_winning
 
@@ -227,15 +248,15 @@ int has_winning(bingo_player*player, int* drawn)
 int full_house(bingo_player*player, int* drawn)
 {
     int Numcount = 0;
-   
+    
     for(int k = 0;k<90;k++)
     {
-       
+        
         if(drawn[k]!=-1)
         {
-        
+            
             for(int f = 0;f<3;f++){
-               
+                
                 for(int e = 0;e<9;e++){
                     if(drawn[k] == player->bingo_card[f][e])
                     {
@@ -246,7 +267,7 @@ int full_house(bingo_player*player, int* drawn)
             }//eo for
         }//eo if
     }//eo for
-
+    
     if(Numcount == 15)
     {
         printf("FULLHOUSE ACHIEVED BY PLAYER %d\n", player->player_number);
@@ -289,17 +310,17 @@ void main()
 {
     //variables
     int drawn[100];
-   // int equal = 0;
+    // int equal = 0;
     int Numofplayers, option, d, draw;
     int count = 0;
     srand((unsigned int)(time(0)));//using current time for random gen
     //should print out number card for testing and assign the middle numbers to
-   // number_card instead of bingo_card
+    // number_card instead of bingo_card
     //start of game code
     
     for(d = 0;d<100;d++)
     {
-       drawn[d] = -1;
+        drawn[d] = -1;
         
     }
     
@@ -336,15 +357,15 @@ void main()
     printf("1. Would you like to draw a number?\n");
     printf("Press 0 to exit\n");
     scanf("%d", &option);
+    printf("EYES DOWN\n");
     //playing the game
     while (option != 0)
     {
-        printf("EYES DOWN\n");
         if (option == 1)
         {
             
             
-           
+            
             draw = rand() % 90;
             
             //checking for duplicates
@@ -381,7 +402,7 @@ void main()
         printf("Press 0 to exit\n");
         scanf("%d", &option);
     }//end of while
- 
+    
     
     
     
@@ -392,9 +413,9 @@ void main()
     
     
     /*  for (d = 0; d < 100; d++)
-    {
-        printf("ARRAY NUMBER: %d\n", drawn[d]);
-    }//EO For DRAW*/
+     {
+     printf("ARRAY NUMBER: %d\n", drawn[d]);
+     }//EO For DRAW*/
     /*for (i = 0; i < 3; i++)
      {
      for (j = 0; j < 7; j++)
