@@ -79,8 +79,7 @@ void create_player(int player_number, bingo_player* player)
     }//EO For
     
     //number generation
-    int num1, num2, num3, Randomcol, randomrow;
-    int gen = 0;
+    int num1, num2, Randomcol, randomrow;
     
     //first column
     num1 = rand() % 8 + 1;
@@ -143,8 +142,7 @@ void create_player(int player_number, bingo_player* player)
         
         Randomcol = rand() % 7 + 1;
         
-        while(count_numbers_in_column(player, Randomcol) >= 3 ||      // ... max 3 number in each column
-              is_assigned(player->bingo_card[randomrow][Randomcol]))   // ... in case this card slot already has a number assigned
+        while(is_assigned(player->bingo_card[randomrow][Randomcol]))   // ... in case this card slot already has a number assigned
         {
             Randomcol = rand() % 7 + 1;
         }
@@ -197,7 +195,7 @@ void print_player(bingo_player* player)
     {
         return;
     }
-    int i, j, row;
+    int i, j;
     printf("Player number: %d\n", player->player_number);
     
     //printing and testing
@@ -268,14 +266,23 @@ int full_house(bingo_player*player, int* drawn)
         }//eo if
     }//eo for
     
-    if(Numcount == 15)
+    
+    if(Numcount != 15)
     {
+        int Fullhouse = 15 - Numcount;
+        Numcount = 0;
+        return(Fullhouse);
+    }
+   
+    else if(Numcount == 15)
+    {
+        
         printf("FULLHOUSE ACHIEVED BY PLAYER %d\n", player->player_number);
     }
     return 0;
 }//end of full_house
 
-int Line_win(bingo_player*player, int* drawn)
+int Line_win(bingo_player*player, int* drawn, int Linenum)
 {
     int Numcount = 0;
     
@@ -284,32 +291,133 @@ int Line_win(bingo_player*player, int* drawn)
         
         if(drawn[k]!=-1)
         {
-            
-            for(int f = 0;f<3;f++){
-                
                 for(int e = 0;e<9;e++){
-                    if(drawn[k] == player->bingo_card[f][e])
+                    if(drawn[k] == player->bingo_card[Linenum][e])
                     {
-                        printf("test\n");
+                       // printf("test for line\n");
                         Numcount++;
                     }//eo if
-                }//eo for
-            }//eo for
-        }//eo if
-    }//eo for
-    
-    if(Numcount == 15)
+                }//end of for
+        }//end of if
+    }//end of line 1 for
+   
+    if(Numcount != 5)
     {
-        printf("FULLHOUSE ACHIEVED BY PLAYER %d\n", player->player_number);
-    }
+        
+        int NumleftLine1 = 5 - Numcount;
+        Numcount = 0;
+         return(NumleftLine1);
+    }//eo if
+    
+    else if(Numcount == 5)
+    {
+        printf("1 LINE WIN %d ACHIEVED BY PLAYER %d\n", Linenum + 1, player->player_number);
+        
+    }//eo if
+    
+    
     return 0;
 }//end of Line_win
+
+
+int Line_win2(bingo_player*player, int* drawn, int Linenum, int Linenum2)
+{
+    int Numcount = 0;
+    
+    for(int k = 0;k<90;k++)
+    {
+        
+        if(drawn[k]!=-1)
+        {
+            for(int e = 0;e<9;e++){
+                if(drawn[k] == player->bingo_card[Linenum][e] || drawn[k] == player->bingo_card[Linenum2][e])
+                {
+                    // printf("test for line\n");
+                    Numcount++;
+                }//eo if
+            }//end of for
+        }//end of if
+    }//end of line 1 for
+    
+    if(Numcount != 10)
+    {
+        Numcount = 0;
+    }//eo if
+    
+    else if(Numcount == 10)
+    {
+        printf("1 LINE WIN %d & LINE %d ACHIEVED BY PLAYER %d\n", Linenum + 1, Linenum2 + 1, player->player_number);
+        
+    }//eo if
+    
+    
+    return 0;
+}//end of Line_win2
+
+
+
+
+void Outputstatus( int* drawn)
+{
+    
+    for (int d = 0; d < 100; d++)
+    {
+       if( drawn[d] == -1)
+       {
+           //do nothing
+       }
+        
+        else if(drawn[d] != -1)
+        {
+             printf("Drawn: %d\n", drawn[d]);
+        }
+    }//EO For DRAWN
+    
+    
+    
+    
+    
+    
+    
+    
+}//end of Outputstatus
+
+void save_game(int* drawn, int Numofplayers, bingo_player*players){
+    
+         printf("===SAVING GAME===\n");
+    FILE* f = fopen("Savegame.dat", "wb");
+        fwrite( drawn ,sizeof(int),100, f);
+        fwrite( &Numofplayers ,sizeof(int),1, f);
+        fwrite( players ,sizeof(bingo_player), Numofplayers, f);
+
+    
+    
+    
+    
+   /* while(tmp != NULL){
+        member current = *tmp;
+        fwrite(&current, sizeof(struct member), 1, f);
+        printf("Saved member %d to file.\n", current.number);
+        tmp = tmp->next;
+    }*/
+}//end of saving
+
+
+
+
 
 
 void main()
 {
     //variables
     int drawn[100];
+    int Fullhouse = 0;
+    int NumleftLine1 = 0;
+    int NumleftLine2 = 0;
+    int NumleftLine3 = 0;
+    int Mainmenuopt = -1;
+    int fullhouseACH = 0;
+     bingo_player* players[MAX_NUM_PLAYERS];
     // int equal = 0;
     int Numofplayers, option, d, draw;
     int count = 0;
@@ -325,86 +433,188 @@ void main()
     }
     
     printf("==WELCOME TO BINGO==\n");
+    printf("1. choose amount of players\n");
+    printf("2. load game\n");
+    printf("0 to exit\n");
+    scanf("%d", &Mainmenuopt);
+    while(Mainmenuopt != 0)
+    {
+    
+    
+    if(Mainmenuopt == 1)
+    {
     printf("How many players are there playing?\n");
     scanf("%d", &Numofplayers);
-    //TEST
-    //printf("%d", Numofplayers);
-    //Input check
-    while (Numofplayers < 1 || Numofplayers > MAX_NUM_PLAYERS)
-    {
-        printf("Invalid Input!");
-        printf("How many players are there playing?\n");
-        scanf("%d", &Numofplayers);
     }
-    //bingo card generation
-    int i;
-    int p = 0;
-    //store bingo player data in array of bingo_player structs.
-    bingo_player* players[MAX_NUM_PLAYERS];
-    
-    while (p < Numofplayers)
-    {
-        players[p] = malloc(sizeof(bingo_player));
-        create_player(p + 1, players[p]);
-        p++;
-    }
-    for (i = 0; i < Numofplayers; i++)
-    {
-        print_player(players[i]);
-    }
-    //NEW STUFF CHECK FOR EQUAL NUMBERS
-    printf("==Options enter the number you want to choose==\n");
-    printf("1. Would you like to draw a number?\n");
-    printf("Press 0 to exit\n");
-    scanf("%d", &option);
-    printf("EYES DOWN\n");
-    //playing the game
-    while (option != 0)
-    {
-        if (option == 1)
+        
+        if(Mainmenuopt == 2)
         {
-            
-            
-            
-            draw = rand() % 90;
-            
-            //checking for duplicates
-            while(has_duplicate(drawn, draw))
+            FILE* f = fopen("Savegame.dat", "rb");
+            printf("Loading Game\n");
+            fread(drawn, sizeof(int), 100, f);
+             fread(&Numofplayers, sizeof(int), 1, f);
+             fread(players, sizeof(bingo_player), Numofplayers, f);
+        }
+        
+            //TEST
+            //printf("%d", Numofplayers);
+            //Input check
+            while (Numofplayers < 1 || Numofplayers > MAX_NUM_PLAYERS)
             {
-                draw = rand() % 90;
-                
-            }//end of while
-            drawn[count] = draw;
-            count++;
-            
-            
-        }//end of if
-        for(p = 0;p<Numofplayers;p++)
-        {
-            
-            if(full_house(players[p], drawn))
-            {
-                break;
+                printf("Invalid Input!");
+                printf("How many players are there playing?\n");
+                scanf("%d", &Numofplayers);
             }
-            /* else if(line 1)
-             {
-             
-             }
-             else if(line 2)
-             {
-             
-             }*/
+            //bingo card generation
+            int i;
+            int p = 0;
+            //store bingo player data in array of bingo_player structs.
+        
+        
+            while (p < Numofplayers)
+            {
+                players[p] = malloc(sizeof(bingo_player));
+                create_player(p + 1, players[p]);
+                p++;
+            }
+            for (i = 0; i < Numofplayers; i++)
+            {
+                print_player(players[i]);
+            }
+            //NEW STUFF CHECK FOR EQUAL NUMBERS
+            printf("==Options enter the number you want to choose==\n");
+            printf("1. Would you like to draw a number?\n");
+            printf("2. Output game status\n");
+            printf("3. Save game\n");
+            printf("Press 0 to exit to main menu without saving\n");
+            scanf("%d", &option);
+            printf("EYES DOWN\n");
+            //playing the game
+            while (option != 0)
+            {
+                //playing
+                if (option == 1)
+                {
+                    draw = rand() % 90;
+                    
+                    //checking for duplicates
+                    while(has_duplicate(drawn, draw))
+                    {
+                        draw = rand() % 90;
+                        
+                    }//end of while
+                    drawn[count] = draw;
+                    count++;
+                    
+                    
+                }//end of if
+                //Winning check
+                for(p = 0;p<Numofplayers;p++)
+                {
+                    
+                    if(full_house(players[p], drawn) == 0)
+                    {
+                        
+                        break;
+                        
+                    }
+                    else if(Line_win(players[p], drawn, 0) == 0)
+                     {
+                        
+                         break;
+                     }
+                    else if(Line_win(players[p], drawn, 1) == 0)
+                    {
+                        
+                        break;
+                    }
+                    else if(Line_win(players[p], drawn, 2) == 0)
+                    {
+                        
+                        break;
+                    }
+                    
+                    else if(Line_win2(players[p], drawn, 0, 1) == 0)
+                    {
+                        
+                        break;
+                    }
+                    else if(Line_win2(players[p], drawn, 1, 2) == 0)
+                    {
+                        
+                        break;
+                    }
+                    else if(Line_win2(players[p], drawn, 2, 0)== 0 )
+                    {
+                        
+                        break;
+                    }
+                }//eo for winnings
+                
+                
+                
+                
+                //output Status of hane
+                if (option == 2)
+                {
+                    int Fullhouserem = 0;
+                    int Linerem1 = 0;
+                    int Linerem2 = 0;
+                    int Linerem3 = 0;
             
-            
-        }//eo for players
-        //menu
-        printf("1. Would you like to draw a number?\n");
-        printf("Press 0 to exit\n");
-        scanf("%d", &option);
-    }//end of while
+                    
+                    for(p = 0;p<Numofplayers;p++)
+                    {
+                        Fullhouserem = full_house(players[p], drawn);
+                        Linerem1 = Line_win(players[p], drawn, 0);
+                        Linerem2 = Line_win(players[p], drawn, 1);
+                        Linerem3 = Line_win(players[p], drawn, 2);
+                        
+                       
+                        printf("Player %d:", p + 1);
+                        printf("Amount until full house: %d\n", Fullhouserem);
+                        printf("amount until line one: %d/5\n", Linerem1);
+                        printf("amount until line two: %d/5\n", Linerem2);
+                        printf("amount until line three: %d/5\n", Linerem3);
+                    }
+                   
+                     Outputstatus(drawn);
+                }//EO output
+                
+                if(option == 3)
+                {
+                    save_game(drawn, Numofplayers, players[0]);
+                    
+                }
+                //menu
+               
+                if(fullhouseACH == 1)
+                {
+                printf("==Options enter the number you want to choose==\n");
+                printf("2. Output game status\n");
+                printf("3. Save game\n");
+                printf("Press 0 to exit to main menu without saving\n");
+                scanf("%d", &option);
+                }
+                
+              else if(fullhouseACH == 0)
+                {
+                    printf("==Options enter the number you want to choose==\n");
+                    printf("1. Would you like to draw a number?\n");
+                    printf("2. Output game status\n");
+                    printf("3. Save game\n");
+                    printf("Press 0 to exit to main menu without saving\n");
+                    scanf("%d", &option);
+                }
+                
+            }//end of sub menu while
     
-    
-    
+        printf("==WELCOME TO BINGO==\n");
+        printf("1. choose amount of players\n");
+        printf("2. load game\n");
+        printf("0 to exit\n");
+        scanf("%d", &Mainmenuopt);
+    }//end of main menu while
     
     
     
